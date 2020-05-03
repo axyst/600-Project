@@ -1,3 +1,4 @@
+#class model for CNN
 import tensorflow as tf
 import numpy as np
 wordVectors = np.load('wordVectors.npy')

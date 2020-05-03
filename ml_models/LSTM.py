@@ -16,6 +16,7 @@ REASON_INDEX=3
 AIRLINE_INDEX=5
 TEXT_INDEX=10
 wordVectors = np.load('wordVectors.npy')
+#class for LSTM model
 class LSTM():
     def __init__(self,numClasses):
         self.labels = tf.placeholder(tf.float32,[None,numClasses])
@@ -41,49 +42,8 @@ class LSTM():
             self.labels:labels
         }
         return feed_dict
-def runLstm(numClasses,out_put,getSet):
-    tf.reset_default_graph()
-    labels = tf.placeholder(tf.float32,[batchSize,numClasses])
-    input_data = tf.placeholder(tf.int32,[batchSize,maxSeqLength])
-    data = tf.Variable(tf.zeros([batchSize,maxSeqLength,300]),dtype=tf.float32)
-    data = tf.nn.embedding_lookup(wordVectors,input_data)
-    lstmCell = tf.contrib.rnn.BasicLSTMCell(lstmUnits)
-    lstmCell = tf.contrib.rnn.DropoutWrapper(cell=lstmCell, output_keep_prob=0.75)
-    value, _ = tf.nn.dynamic_rnn(lstmCell, data, dtype=tf.float32)
-    weight = tf.Variable(tf.truncated_normal([lstmUnits, numClasses]))
-    bias = tf.Variable(tf.constant(0.1, shape=[numClasses]))
-    value = tf.transpose(value, [1, 0, 2])
-    last = tf.gather(value, int(value.get_shape()[0]) - 1)
-    prediction = (tf.matmul(last, weight) + bias)
-    correctPred = tf.equal(tf.argmax(prediction,1), tf.argmax(labels,1))
-    accuracy = tf.reduce_mean(tf.cast(correctPred, tf.float32))
-    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=prediction, labels=labels))
-    optimizer = tf.train.AdamOptimizer().minimize(loss)
-    tf.summary.scalar('Loss', loss)
-    tf.summary.scalar('Accuracy', accuracy)
-    merged = tf.summary.merge_all()
-    logdir = "tensorboard/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "/"
-    with tf.InteractiveSession() as sess:
-        writer = tf.summary.FileWriter(logdir, sess.graph)
-        saver = tf.train.Saver()
-        sess.run(tf.global_variables_initializer())
-        print("start train")
-        for i in range(iterations):
-            nextBatch,nextBatchLabels =getSet()
-            sess.run(optimizer,{input_data:nextBatch,labels:nextBatchLabels})
-            if (i%50==0):
-                summary = sess.run(merged,{input_data:nextBatch,labels:nextBatchLabels})
-                writer.add_summary(summary,i)
-            if(i%100==0 and i != 0):
-                save_path =saver.save(sess,"models/out_put/pretrained.ckpt",global_step=i)
-                print("saved sucess")
-                loss_result = sess.run(loss,{input_data:nextBatch,labels:nextBatchLabels})
-                accuracy_result = sess.run(accuracy, {input_data: nextBatch, labels: nextBatchLabels})
-                print("iteration {}/{}".format(i+1,iterations))
-                print("loss is {}".format(loss_result))
-                print("accuracy is {}".format(accuracy_result))
-        writer.close() 
 
+#training model to predict sentiment
 def runSentiment():
     tf.reset_default_graph()
     model = LSTM(3)
@@ -111,7 +71,7 @@ def runSentiment():
                 print("loss is {}".format(loss_result))
                 print("accuracy is {}".format(accuracy_result))
         writer.close() 
-
+#training model to predict negative reason
 def runReason():
     tf.reset_default_graph()
     model = LSTM(len(word2vec.negative_reason))
@@ -141,6 +101,7 @@ def runReason():
             print("accuracy is {}".format(accuracy_result))
     writer.close() 
 
+# a function to predict negative reason using trained model
 def predictReason(tweet):
     tf.reset_default_graph()
     model = LSTM(len(word2vec.negative_reason))
@@ -152,6 +113,8 @@ def predictReason(tweet):
         vector = [word2vec.tweet2vec(tweet) for i in range(25)]
         res = sess.run(model.result,{model.input_data:vector})
         return res[0]
+
+# A function to predict sentiment using trained model
 def predictSen(tweet):
     tf.reset_default_graph()
     model = LSTM(3)

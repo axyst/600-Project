@@ -16,7 +16,7 @@ TEXT_INDEX=10
 iterations = 5000
 embedding_size = 300
 
-
+#training model to predict negative reason
 def runReason():
     tf.reset_default_graph()
     board_dir = './tensorboard/text_cnn_reason'+datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "/"
@@ -41,6 +41,7 @@ def runReason():
                 print("train_accuracy is {}".format(train_accuracy)) 
                 writer.add_summary(train_summary,i)
         writer.close()
+#training model to predict sentiment
 def runSen():
     tf.reset_default_graph()
     board_dir = './tensorboard/text_cnn'+datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "/"
@@ -65,6 +66,7 @@ def runSen():
                 print("train_accuracy is {}".format(train_accuracy))
                 writer.add_summary(train_summary,i)
         writer.close()
+# a function to predict sentiment using traned model
 def predictSen(tweet):
     tf.reset_default_graph()
     mode = CNN(3)
@@ -78,6 +80,7 @@ def predictSen(tweet):
         print(res)
         return res[0]
 
+# a function to predict negative reason using traned model
 def predictReason(tweet):
     tf.reset_default_graph()
     mode = CNN(len(word2vec.negative_reason))

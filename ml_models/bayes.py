@@ -1,3 +1,4 @@
+#This is bayes classifer
 import nltk
 import csv
 import re
@@ -14,12 +15,14 @@ TEXT_INDEX=10
 stoplist = nltk.corpus.stopwords.words("english")
 SL_path = "subjclueslen1-HLTEMNLP05.tff"
 label =1 
+#process raw tweet,delete @name
 def tweet_process(tweet):
     #remove @name
     new_tweet = re.sub(r'@\S+',"",tweet)
     document_words = nltk.word_tokenize(new_tweet)
     document_words = [word.lower() for word in document_words if (word not in stoplist) and (len(word)>2) and (re.search('[A-Za-z]+',word) != None)]
     return document_words
+#load SL 
 def readSubjectivity(path):
     flexicon = open(path, 'r')
     # initialize an empty dictionary
@@ -38,6 +41,7 @@ def readSubjectivity(path):
             isStemmed = False
         sldict[word] = [strength, posTag, isStemmed, polarity]
     return sldict
+#extract positive negative features
 def SL_features(document,SL):
     document_words = set(document)
     features = {}
@@ -67,13 +71,13 @@ def getTf_Idf(word,sent,documents):
     tf = corpus.tf(word,sent)
     return idf*tf
 
-
 def tfIdf_features(sentence,documents):
     words = set(sentence)
     features = {}
     for word in words:
         features['V_{}'.format(word)] = getTf_Idf(word,sentence,documents)
     return features
+#tf-idf bayes classifier
 def run_tfIdf_classify(list):
     process_tweets = [" ".join(tweet_process(tweet[TEXT_INDEX])) for tweet in list]
     tag_list = [tweet[SENTIMENT_INDEX] for tweet in list]
@@ -85,6 +89,7 @@ def run_tfIdf_classify(list):
     clm = MultinomialNB().fit(tfArray[0:10000],tag_list[0:10000])
     return clm.score(tfArray[10001:],tag_list[10001:])
 
+#tf-idf negative reason
 def run_tfIdf_classify_reason(list):
     process_tweets = [" ".join(tweet_process(tweet[TEXT_INDEX])) for tweet in list if len(tweet[REASON_INDEX])>0]
     tag_list = [tweet[REASON_INDEX] for tweet in list]
@@ -117,7 +122,6 @@ if __name__ == "__main__":
         reader = csv.reader(f)
         list_tweet = list(reader)
     SL = readSubjectivity(SL_path)
-    #get_tfIdf_classify(list_tweet[1:])
     SL_features_list =[(SL_features(tweet_process(tweet[TEXT_INDEX]),SL),tweet[SENTIMENT_INDEX]) for tweet in list_tweet[1:]]
     #seniment classify
     train_set, test_set = SL_features_list[4000:], SL_features_list[:4000]
